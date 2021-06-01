@@ -9,4 +9,4 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 RUN sh /setup.sh
 
-CMD streamlit run app.py --host 0.0.0.0 --port $PORT
+CMD streamlit run app.py
