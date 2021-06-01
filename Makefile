@@ -1,6 +1,6 @@
 
 
-GCP_PROJECT_ID=replace-me-with-your-project-id
+GCP_PROJECT_ID=studious-spider-309810
 DOCKER_IMAGE_NAME=nyt-project
 GCR_MULTI_REGION=eu.gcr.io
 GCR_REGION=europe-west1
