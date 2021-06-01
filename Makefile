@@ -14,18 +14,25 @@ CLUSTER_NAME=cluster-nyt
 DEPLOYMENT_NAME=nyt-deployment-name
 GCR_ZONE=europe-west1-b
 
+# usage:
+#
+# - make build
+# - make run_streamlit
+# - make push
+# - make kube_create
+# - make kube_deploy
+# - make kube_expose
+# - make kube_watch
+
 # build the image
 build:
 	docker build -t ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME} .
 
 # verify that it executing a command line inside of the container
 interactive:
-	docker run -it -e PORT=8000 -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME} sh
+	docker run -it -p 8080:8501 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME} sh
 
 # run the container without interaction (command line)
-run:
-	docker run -e PORT=8000 -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
-
 run_streamlit:
 	docker run -p 8080:8501 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
 
