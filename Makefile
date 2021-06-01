@@ -30,11 +30,11 @@ build:
 
 # verify that it executing a command line inside of the container
 interactive:
-	docker run -it -p 8080:8501 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME} sh
+	docker run -it -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME} sh
 
 # run the container without interaction (command line)
 run_streamlit:
-	docker run -p 8080:8501 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
+	docker run -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
 
 # push the built image into Container Registry
 push:
