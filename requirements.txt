@@ -1,1 +1,7 @@
 adjustText
+streamlit
+numpy
+pandas
+matplotlib
+seaborn
+plotly
