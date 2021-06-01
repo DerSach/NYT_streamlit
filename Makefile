@@ -1,4 +1,26 @@
 
+
+GCP_PROJECT_ID=replace-me-with-your-project-id
+DOCKER_IMAGE_NAME=nyt-project
+GCR_MULTI_REGION=eu.gcr.io
+GCR_REGION=europe-west1
+
+CLUSTER_NAME=cluster-nyt
+
+build:
+	docker build -t ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME} .
+
+run:
+	docker run -e PORT=8000 -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
+
+push:
+	docker push ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
+
+kube:
+	gcloud container clusters create ${CLUSTER_NAME} --num-nodes 1 --region ${GCR_REGION}
+
+
+
 # ----------------------------------
 #         LOCAL SET UP
 # ----------------------------------
