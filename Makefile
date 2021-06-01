@@ -12,6 +12,7 @@ CLUSTER_NAME=cluster-nyt
 
 # potentially change the name here 🐯 🐯 🐯
 DEPLOYMENT_NAME=nyt-deployment-name
+GCR_ZONE=europe-west1-b
 
 # build the image
 build:
@@ -25,13 +26,20 @@ interactive:
 run:
 	docker run -e PORT=8000 -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
 
+run_streamlit:
+	docker run -p 8080:8501 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
+
 # push the built image into Container Registry
 push:
 	docker push ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
 
 # declare a cluster
 kube_create:
-	gcloud container clusters create ${CLUSTER_NAME} --num-nodes 1 --region ${GCR_REGION}
+	gcloud container clusters create ${CLUSTER_NAME} --num-nodes 1 --zone ${GCR_ZONE}
+	#  --node-locations ${GCR_ZONE}
+
+# kube_resize:
+	# gcloud container clusters resize ${CLUSTER_NAME} --num-nodes 1
 
 # declare a cluster deployment
 kube_deploy:
@@ -39,7 +47,7 @@ kube_deploy:
 
 # actually deploy to the cluster
 kube_expose:
-	kubectl expose deployment ${DEPLOYMENT_NAME} --type=LoadBalancer --port 80 --target-port 5000
+	kubectl expose deployment ${DEPLOYMENT_NAME} --type=LoadBalancer --port 80 --target-port 8000
 
 # get cluster address
 kube_watch:
