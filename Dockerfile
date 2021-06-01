@@ -7,6 +7,5 @@ COPY requirements.txt /requirements.txt
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
-RUN sh /setup.sh
 
-CMD streamlit run app.py
+CMD sh /setup.sh && streamlit run app.py
