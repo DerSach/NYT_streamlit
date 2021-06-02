@@ -17,7 +17,7 @@ GCR_ZONE=europe-west1-b
 # usage:
 #
 # - make build
-# - make run_streamlit
+# - make run
 # - make push
 # - make kube_create
 # - echo gke.yaml | kubectl apply -f -
