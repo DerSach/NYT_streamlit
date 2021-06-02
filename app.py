@@ -216,7 +216,7 @@ def plot_articles(word):
 # Pages setup
 #---------------------------------------
 
-page = st.sidebar.selectbox("",['Welcome', 'Topic mapping','Topic analysis over time', 'Topic search'])
+page = st.sidebar.selectbox("",['Welcome', 'Topic mapping', 'Topic analysis over time', 'Topic search'])
 
 #---------------------------------------
 # Welcome screen that loads fast
