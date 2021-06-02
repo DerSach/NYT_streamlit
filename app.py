@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from adjustText import adjust_text
 
 #---------------------------------------
 # Fonctions definition and df imports
@@ -14,35 +13,80 @@ from adjustText import adjust_text
 @st.cache
 def read_content():
     comments_df = pd.read_csv('data/TOTAL_BERT_LIGHT.csv')
+    
     articles_df = pd.read_csv('data/articles_vf6.csv')
-    cloud_df = pd.read_csv('data/cloud_keywords.csv')
+    
+    np.random.seed(11)
+    cloud_df = pd.read_csv('data/cloud_keywords.csv',index_col=[0])
+    # Crée une palette de couleur
+    # Passer sous 15 pour des couleurs plus pastelles
+    cloud_df['color']=round(np.random.randn(1)*(cloud_df.x+cloud_df.y))+15
+
     df_visualisation_keywords = pd.read_csv('data/keyword_polarity_plot.csv')
 
-    table_df = comments_df.groupby(["state_acc"], as_index=False).agg({'commentType': 'count', 'is_emo': 'sum'})
-    table_df["state_metric"] =  table_df["is_emo"]/table_df["commentType"]
-    table_df = table_df.rename(columns={"is_emo": "is_emo_state", "commentType":"nb_comments_state"})
+    table_df = pd.read_csv('data/table_df.csv')
 
     return comments_df, articles_df, cloud_df, df_visualisation_keywords, table_df
 
 comments_df, articles_df, cloud_df, df_visualisation_keywords, table_df = read_content()
 
-# @st.cache
-# def get_line_chart_data(df, keyword1, keyword2):
-#     df1 = df[df['unique_kw'].str.contains(keyword1)]
-#     grouped_df = df1.groupby('month', as_index = False).agg({'debate_score':'mean'})
-#     grouped_df['month'] = grouped_df['month'].map(month_dico)
-#     plt.plot(grouped_df['month'], grouped_df['debate_score'], c = 'r', label = keyword1)
-#     df2 = df[df['unique_kw'].str.contains(keyword2)]
-#     grouped_df = df.groupby('month', as_index = False).agg({'debate_score':'mean'})
-#     grouped_df['month'] = grouped_df['month'].map(month_dico)
-#     plt.plot(grouped_df['month'], grouped_df['debate_score'], c = 'b', label = keyword2)
-#     plt.ylabel('Debate score')
-#     plt.title('Evolution of debate scores for given keywords-related articles')
-#     plt.legend()
-#     plt.show()
+#---------------------------------------
+# Topic mapping functions and variables
+#---------------------------------------
+
+list_a_plot = ['donald','biden','harris','barack','iraq',
+               'wine','cooking','video','internet','science','biology',
+               'factory','manufacturing','impeachment','law','justice',
+               'hospital','medicine','care','vaccination','epidemic','coronavirus','mexico','liberty',
+               'tennis','discrimination','sport','twitter','facebook','police','safety']
+
+x_coords =[9, 9, -5, 10, 9, -9, -5, -9, 9, -9, 5, 5, -5,
+           5, 5, -9, -9, 10, 5, -5, -5, 10,5,5,-50,-15,-40,-30,19,9,-15] 
+y_coords =[-10, 25, -25, 10, 22, 5, 10, 20, -20, -20, 20,
+           25, 10, 25, 10, -25, 22, -15, 5, 10, -10, 22,-30,-25,0,-20,0,3,-15,-20,-20]
 
 @st.cache
-def plot_evolution_score(df, keyword1, keyword2):
+def annote(mot,ind,fig):
+  fig.add_annotation(
+        x=cloud_df[cloud_df.kw==mot].x.values[0],
+        y=cloud_df[cloud_df.kw==mot].y.values[0],
+        xref="x",
+        yref="y",
+        text=mot,
+        showarrow=True,
+        font=dict(
+            family="Courier New, monospace",
+            size=16,
+            color="#3C2100"
+            ),
+        align="center",
+        arrowhead=1,
+        arrowsize=1,
+        arrowwidth=0.5,
+        arrowcolor="#636363",
+        ax=x_coords[ind],
+        ay=y_coords[ind],
+        opacity=1)
+
+@st.cache
+def plot_cloud_kw(cloud_df):
+    fig = go.Figure(data=go.Scatter(x=cloud_df['x'],
+                                y=cloud_df['y'],
+                                mode='markers',
+                                marker_color=cloud_df['color'],
+                                text=cloud_df['kw'])) # hover text goes here
+    fig.update_layout(title='Keywords clustering', width=900,height=600)
+    for el in enumerate(list_a_plot): # Permet de ploter les mots voulus sur certains points
+        annote(el[1],el[0],fig)
+        
+    return fig
+
+#---------------------------------------
+# Topic analysis over time functions
+#---------------------------------------
+
+@st.cache
+def plot_evolution_score(df, keyword1 = 'trump', keyword2 = 'biden'):
     df1 = df[df['unique_kw'].str.contains(keyword1)]
     grouped_df = df1.groupby('month', as_index = False).agg({'debate_score':'mean'})
     grouped_df['month'] = grouped_df['month'].map(month_dico)
@@ -57,8 +101,13 @@ def plot_evolution_score(df, keyword1, keyword2):
     fig.update_layout(
     title="Evolution of debate scores for given keywords-related articles",
     yaxis_title="Debate score",
+    width=900,height=600
     )
     return fig
+
+#---------------------------------------
+# Topic search functions
+#---------------------------------------
 
 @st.cache
 def search_word(word,df):
@@ -86,12 +135,26 @@ month_dico = {1: 'Jan',
             10: 'Oct',
             11: 'Nov',
             12: 'Dec'}
+
+@st.cache    
+def plot_articles(word):
+  custom_search = comments_df[comments_df["unique_kw"].str.contains(word)]
+  custom_search_metrics = custom_search.groupby(["months"]).sum()["is_emo"]
+  custom_search_metrics = custom_search_metrics.reset_index()
+  custom_search_metrics["months"] = custom_search_metrics["months"].map(month_dico)
+  fig = px.line(custom_search_metrics, x="months", y="is_emo", title=f'Evolution over time of sentiment score for {word}')
+  max_months = custom_search_metrics["months"].iloc[custom_search_metrics["is_emo"].idxmax()]
+  articles_df["month"] = articles_df["month"].map(month_dico)
+  search_articles = articles_df[articles_df["unique_kw"].str.contains(word)]
+  search_articles = search_articles[search_articles["month"]==max_months] 
+  return fig, search_articles.sort_values(by="engagement_score", ascending=False)
     
 #---------------------------------------
 # Pages setup
 #---------------------------------------
 
-page = st.sidebar.selectbox("",['Welcome', 'Keyword mapping','Keyword analysis over time','Topic polarity', 'Keyword search'])
+
+page = st.sidebar.selectbox("",['Welcome', 'Topic mapping','Topic analysis over time', 'Topic search'])
 
 #---------------------------------------
 # Welcome screen that loads fast
@@ -106,62 +169,18 @@ if page == 'Welcome':
 # Keyword mapping
 #---------------------------------------
 
-if page == 'Keyword mapping':
+if page == 'Topic mapping':
     # Overall title
-    st.markdown("<h1 style='text-align: center; color: DarkBlue;'>Keyword mapping</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: DarkBlue;'>Topic mapping</h1>", unsafe_allow_html=True)
     st.text("")
     
     '''
-    # Identifying clustering of NYT articles keywords
+    # Identifying clustering of NYT articles topics
     ''' 
+
+    fig_kw = plot_cloud_kw(cloud_df)
     
-#    sns.set()
-    # Initialize figure
-    fig, ax = plt.subplots(figsize = (11.7, 8.27))
-    sns.scatterplot(cloud_df['x'], cloud_df['y'], alpha = 0.8)
-    # Import adjustText, initialize list of texts
-
-    texts = []
-    words_to_plot = list(np.arange(0, len(cloud_df), 10))
-    # Append words to list
-    for word in words_to_plot:
-        texts.append(plt.text(cloud_df.loc[word,'x'], cloud_df.loc[word, 'y'], cloud_df.loc[word,'kw'], fontsize = 14))
-    
-    # Plot text using adjust_text (because overlapping text is hard to read)
-    adjust_text(texts, force_points = 0.4, force_text = 0.4, 
-                expand_points = (2,1), expand_text = (1,2),
-                arrowprops = dict(arrowstyle = "-", color = 'black', lw = 0.5))
-    plt.show()
-    
-    st.pyplot(fig)
-
-#---------------------------------------
-# Keyword analysis over time
-#---------------------------------------
-
-if page == 'Keyword analysis over time':
-    # Overall title
-    st.markdown("<h1 style='text-align: center; color: DarkBlue;'>Keyword analysis over time</h1>", unsafe_allow_html=True)
-    st.text("")
-    
-    '''
-    # Overview of debate score evolution on certain keywords over time
-    '''
-    keyword1 = st.text_input('What keyword trend do you want to look at? 📉 📈')
-    keyword2 = st.text_input('What other keyword trend do you want to look at? 📈 📉')
-
-    fig1 = plot_evolution_score(articles_df, keyword1 = 'trump', keyword2 = 'biden')
-
-    st.plotly_chart(fig1)
-
-#---------------------------------------
-# Keyword polarity
-#---------------------------------------
-
-if page == 'Topic polarity':
-    # Overall title
-    st.markdown("<h1 style='text-align: center; color: DarkBlue;'>Topic polarity</h1>", unsafe_allow_html=True)
-    st.text("")
+    st.plotly_chart(fig_kw, width=900,height=600)
     
     '''
     # Which topics unleashed the most passions among readers?
@@ -179,26 +198,45 @@ if page == 'Topic polarity':
                                         showscale=True
                                     ),
                                     text=df_visualisation_keywords.keyword)) # hover text goes here
-    fig2.update_layout(title='Keywords negative polarity')
+    fig2.update_layout(title='Topic negative polarity')
     fig2.update_xaxes(title_text="Amount of strongly negative comments on topic")
     fig2.update_yaxes(title_text="Nb of States strongly reacting on topic")  
     
     st.plotly_chart(fig2)  
+
+#---------------------------------------
+# Topic analysis over time
+#---------------------------------------
+
+if page == 'Topic analysis over time':
+    # Overall title
+    st.markdown("<h1 style='text-align: center; color: DarkBlue;'>Topic analysis over time</h1>", unsafe_allow_html=True)
+    st.text("")
+    
+    '''
+    # Overview of debate score evolution on certain topics over time
+    '''
+    keyword1 = st.text_input('What topic trend do you want to look at? 📉 📈')
+    keyword2 = st.text_input('What other topic trend do you want to look at? 📈 📉')
+
+    fig1 = plot_evolution_score(articles_df, keyword1, keyword2)
+
+    st.plotly_chart(fig1,  width=900,height=600)
         
 #---------------------------------------
 # Keyword search
 #---------------------------------------
 
-if page == 'Keyword search':
+if page == 'Topic search':
     # Overall title
-    st.markdown("<h1 style='text-align: center; color: DarkBlue;'>Keyword search</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: DarkBlue;'>Topic search</h1>", unsafe_allow_html=True)
     st.text("")
 
     '''
     # New York Times readers emotional map
     '''
 
-    keyword = st.text_input('What keyword are you interested about? 🔍')
+    keyword = st.text_input('Which topic are you interested about? 🔍')
         
     custom_df = search_word(keyword,comments_df)
 
@@ -211,12 +249,16 @@ if page == 'Keyword search':
                     color_continuous_scale=px.colors.diverging.Portland,
                     ) # Set to plot as US States
     fig.update_layout(
-    title="Keyword-related articles emotional intensity across US states for this keyword",
+    title="Topic-related articles emotional intensity across US states for this topic",
     yaxis_title="Debate score",
     geo_scope='usa',  # Plot only the USA instead of globe
-    )
+    width=900,height=600)
 
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, width=900,height=600)
+    
+    fig_art, art_df = plot_articles(keyword)
+    
+    st.plotly_chart(fig_art, width=900,height=600)
 
     CSS = """
     p {
@@ -231,11 +273,9 @@ if page == 'Keyword search':
     🔥🔥🔥 Hottest articles 🔥🔥🔥
     '''
 
-    articles_selected_df = articles_df[articles_df["unique_kw"].str.contains(keyword)]
-    articles_selected_df.sort_values(by = 'share_of_total_comments', ascending = False, inplace = True)
-    st.write('🥇' , list(articles_selected_df['headline'])[0])
-    st.write('🥈', list(articles_selected_df['headline'])[1])
-    st.write('🥉' , list(articles_selected_df['headline'])[2])
+    st.write('🥇' , list(art_df['headline'])[0])
+    st.write('🥈', list(art_df['headline'])[1])
+    st.write('🥉' , list(art_df['headline'])[2])
 
     st.write(f'<style>{CSS}</style>', unsafe_allow_html=True)
 

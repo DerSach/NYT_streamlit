@@ -1,4 +1,3 @@
-adjustText
 streamlit
 numpy
 pandas
