@@ -20,7 +20,6 @@ GCR_ZONE=europe-west1-b
 # - make run
 # - make push
 # - make kube_create
-# - echo gke.yaml | kubectl apply -f -
 # - make kube_deploy
 # - make kube_expose
 # - make kube_watch
@@ -43,11 +42,11 @@ push:
 
 # declare a cluster
 kube_create:
-	gcloud container clusters create ${CLUSTER_NAME} --num-nodes 1 --zone ${GCR_ZONE}
-	#  --node-locations ${GCR_ZONE}
-
-# kube_resize:
-	# gcloud container clusters resize ${CLUSTER_NAME} --num-nodes 1
+	gcloud container clusters create ${CLUSTER_NAME} \
+		--machine-type=n2-standard-2 \
+		--num-nodes 1 \
+		--zone ${GCR_ZONE} \
+	    # --node-locations ${GCR_ZONE} \
 
 # declare a cluster deployment
 kube_deploy:
