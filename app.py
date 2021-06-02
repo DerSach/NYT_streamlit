@@ -23,6 +23,7 @@ def read_content():
     cloud_df['color']=round(np.random.randn(1)*(cloud_df.x+cloud_df.y))+15
 
     df_visualisation_keywords = pd.read_csv('data/keyword_polarity_plot.csv')
+    df_visualisation_keywords['sized_polarize']=df_visualisation_keywords.nb_polarizes_comments #Scaling
 
     table_df = pd.read_csv('data/table_df.csv')
 
@@ -75,7 +76,7 @@ def plot_cloud_kw(cloud_df):
                                 mode='markers',
                                 marker_color=cloud_df['color'],
                                 text=cloud_df['kw'])) # hover text goes here
-    fig.update_layout(title='Keywords clustering', width=900,height=600)
+    fig.update_layout(title='Keywords clustering', width=700,height=600)
     for el in enumerate(list_a_plot): # Permet de ploter les mots voulus sur certains points
         annote(el[1],el[0],fig)
         
@@ -86,7 +87,7 @@ def plot_cloud_kw(cloud_df):
 #---------------------------------------
 
 @st.cache
-def plot_evolution_score(df, keyword1 = 'trump', keyword2 = 'biden'):
+def plot_evolution_score(df, keyword1, keyword2):
     df1 = df[df['unique_kw'].str.contains(keyword1)]
     grouped_df = df1.groupby('month', as_index = False).agg({'debate_score':'mean'})
     grouped_df['month'] = grouped_df['month'].map(month_dico)
@@ -94,20 +95,73 @@ def plot_evolution_score(df, keyword1 = 'trump', keyword2 = 'biden'):
     fig.add_trace(go.Scatter(x=grouped_df['month'], y=grouped_df['debate_score']*1000,
                     name=keyword1))
     df2 = df[df['unique_kw'].str.contains(keyword2)]
-    grouped_df = df.groupby('month', as_index = False).agg({'debate_score':'mean'})
+    grouped_df = df2.groupby('month', as_index = False).agg({'debate_score':'mean'})
     grouped_df['month'] = grouped_df['month'].map(month_dico)
     fig.add_trace(go.Scatter(x=grouped_df['month'], y=grouped_df['debate_score']*1000,
                 name=keyword2))
     fig.update_layout(
     title="Evolution of debate scores for given keywords-related articles",
     yaxis_title="Debate score",
-    width=900,height=600
+    width=700,height=600
     )
     return fig
 
 #---------------------------------------
-# Topic search functions
+# Topic search functions and variables
 #---------------------------------------
+
+us_state_abbrev = {
+    'AL': 'Alabama',
+    'AK': 'Alaska',
+    'AZ': 'Arizona',
+    'AR': 'Arkansas',
+    'CA': 'California',
+    'CO': 'Colorado',
+    'CT': 'Connecticut',
+    'DE': 'Delaware',
+    'FL': 'Florida',
+    'GA': 'Georgia',
+    'HI': 'Hawaii',
+    'ID': 'Idaho',
+    'IL': 'Illinois',
+    'IN': 'Indiana',
+    'IA': 'Iowa',
+    'KS': 'Kansas',
+    'KY': 'Kentucky',
+    'LA': 'Louisiana',
+    'ME': 'Maine',
+    'MD': 'Maryland',
+    'MA': 'Massachusetts',
+    'MI': 'Michigan',
+    'MN': 'Minnesota',
+    'MS': 'Mississippi',
+    'MO': 'Missouri',
+    'MT': 'Montana',
+    'NE': 'Nebraska',
+    'NV': 'Nevada',
+    'NH': 'New Hampshire',
+    'NJ': 'New Jersey',
+    'NM': 'New Mexico',
+    'NY': 'New York',
+    'NC': 'North Carolina',
+    'ND': 'North Dakota',
+    'OH': 'Ohio',
+    'OK': 'Oklahoma',
+    'OR': 'Oregon',
+    'PA': 'Pennsylvania',
+    'RI': 'Rhode Island',
+    'SC': 'South Carolina',
+    'SD': 'South Dakota',
+    'TN': 'Tennessee',
+    'TX': 'Texas',
+    'UT': 'Utah',
+    'VT': 'Vermont',
+    'VA': 'Virginia',
+    'WA': 'Washington',
+    'WV': 'West Virginia',
+    'WI': 'Wisconsin',
+    'WY': 'Wyoming',
+}
 
 @st.cache
 def search_word(word,df):
@@ -116,11 +170,11 @@ def search_word(word,df):
     custom_search_metrics["topic_state_metric"] =  custom_search_metrics["is_emo"]/custom_search_metrics["commentType"]
     custom_search_metrics = custom_search_metrics.reset_index()
     custom_search_metrics = custom_search_metrics.merge(table_df, on="state_acc")
-    custom_search_metrics["distance_to_state"] = custom_search_metrics["topic_state_metric"] - custom_search_metrics["state_metric"]
     custom_search_metrics["distance_to_country"] = custom_search_metrics["topic_state_metric"] - table_df["state_metric"].mean()
-    custom_search_metrics.loc[custom_search_metrics['distance_to_state'] < 0,'distance_to_state'] = 0
     custom_search_metrics.loc[custom_search_metrics['distance_to_country'] < 0,'distance_to_country'] = 0
     custom_search_metrics = custom_search_metrics.sort_values(by="distance_to_country", ascending = False)
+    custom_search_metrics['state_name'] = custom_search_metrics['state_acc'].map(us_state_abbrev)
+    custom_search_metrics["distance_to_country"] = custom_search_metrics["distance_to_country"] * 100
     return custom_search_metrics
 
 month_dico = {1: 'Jan',
@@ -142,17 +196,25 @@ def plot_articles(word):
   custom_search_metrics = custom_search.groupby(["months"]).sum()["is_emo"]
   custom_search_metrics = custom_search_metrics.reset_index()
   custom_search_metrics["months"] = custom_search_metrics["months"].map(month_dico)
-  fig = px.line(custom_search_metrics, x="months", y="is_emo", title=f'Evolution over time of sentiment score for {word}')
+  fig = px.line(custom_search_metrics, x='months', y="is_emo")
+  fig.update_layout(
+      xaxis_title="",
+      yaxis_title="Polarized comments",
+      title=f'When readers are the most emotionally engaged for {word}-related articles',
+      title_font_size = 18,
+      font=dict(size=12),
+      width=700,
+      height=600)
   max_months = custom_search_metrics["months"].iloc[custom_search_metrics["is_emo"].idxmax()]
-  articles_df["month"] = articles_df["month"].map(month_dico)
-  search_articles = articles_df[articles_df["unique_kw"].str.contains(word)]
+  articles_copy = articles_df.copy()
+  articles_copy["month"] = articles_copy["month"].map(month_dico)
+  search_articles = articles_copy[articles_copy["unique_kw"].str.contains(word)]
   search_articles = search_articles[search_articles["month"]==max_months] 
-  return fig, search_articles.sort_values(by="engagement_score", ascending=False)
+  return fig, search_articles.sort_values(by="debate_score", ascending=False)
     
 #---------------------------------------
 # Pages setup
 #---------------------------------------
-
 
 page = st.sidebar.selectbox("",['Welcome', 'Topic mapping','Topic analysis over time', 'Topic search'])
 
@@ -180,13 +242,12 @@ if page == 'Topic mapping':
 
     fig_kw = plot_cloud_kw(cloud_df)
     
-    st.plotly_chart(fig_kw, width=900,height=600)
+    st.plotly_chart(fig_kw, width=700,height=600)
     
     '''
     # Which topics unleashed the most passions among readers?
     '''
     
-    df_visualisation_keywords['sized_polarize']=df_visualisation_keywords.nb_polarizes_comments #Scaling
     fig2 = go.Figure(data=go.Scatter(x=df_visualisation_keywords['sized_polarize'], 
                                     y=df_visualisation_keywords['state_indifference'],
                                     #color = df_visualisation_keywords["nb_occ"], 
@@ -221,8 +282,21 @@ if page == 'Topic analysis over time':
 
     fig1 = plot_evolution_score(articles_df, keyword1, keyword2)
 
-    st.plotly_chart(fig1,  width=900,height=600)
-        
+    st.plotly_chart(fig1,  width=700,height=600)
+    
+    CSS2 = """
+    .stApp {
+        background-image: url(https://s.france24.com/media/display/6d5bd9ae-1282-11eb-b5bf-005056bff430/w:1280/p:16x9/2020-10-20T002656Z_691109421_RC20MJ9D6YDE_RTRMADP_3_USA-ELECTION-DEBATES.webp);
+        background-size: cover;
+        backdrop-filter: blur(5px);
+    }
+    .block-container {
+        background-color: white;
+    }
+    """
+    
+    st.write(f'<style>{CSS2}</style>', unsafe_allow_html=True)
+    
 #---------------------------------------
 # Keyword search
 #---------------------------------------
@@ -235,7 +309,7 @@ if page == 'Topic search':
     '''
     # New York Times readers emotional map
     '''
-
+    
     keyword = st.text_input('Which topic are you interested about? 🔍')
         
     custom_df = search_word(keyword,comments_df)
@@ -244,28 +318,41 @@ if page == 'Topic search':
     fig = px.choropleth(custom_df,  # Input Pandas DataFrame
                     locations="state_acc",  # DataFrame column with locations 
                     color='distance_to_country',  # DataFrame column with color values
-                    hover_name="state_acc", # DataFrame column hover info
+                    hover_name="state_name", # DataFrame column hover info
                     locationmode = 'USA-states',
                     color_continuous_scale=px.colors.diverging.Portland,
+                    labels={'distance_to_country':'% of overreaction'}
                     ) # Set to plot as US States
     fig.update_layout(
-    title="Topic-related articles emotional intensity across US states for this topic",
+    title=f"{keyword}-related articles emotional intensity across US states for this topic",
+    title_font_size = 18,
+    font_size = 16,
     yaxis_title="Debate score",
     geo_scope='usa',  # Plot only the USA instead of globe
-    width=900,height=600)
+    font=dict(size=12),
+    width=700,height=600)
 
-    st.plotly_chart(fig, width=900,height=600)
+    st.plotly_chart(fig, width=700,height=600)
     
     fig_art, art_df = plot_articles(keyword)
     
-    st.plotly_chart(fig_art, width=900,height=600)
-
-    CSS = """
+    st.plotly_chart(fig_art, width=700,height=600)
+    
+    CSS3 = """
     p {
         color: black;
-        font-size: 30px;
+        font-size: 24px;
         font-weight: bold;
         text-align: center;
+        background-color: white;
+    }
+    .stApp {
+        background-image: url(https://static01.nyt.com/images/2020/05/24/reader-center/NYT-front-page-05-24-20/NYT-front-page-05-24-20-videoSixteenByNineJumbo1600-v2.jpg);
+        background-size: cover;
+        backdrop-filter: blur(1px);
+    }
+    .block-container {
+        background-color: white;
     }
     """
 
@@ -277,5 +364,5 @@ if page == 'Topic search':
     st.write('🥈', list(art_df['headline'])[1])
     st.write('🥉' , list(art_df['headline'])[2])
 
-    st.write(f'<style>{CSS}</style>', unsafe_allow_html=True)
+    st.write(f'<style>{CSS3}</style>', unsafe_allow_html=True)
 
