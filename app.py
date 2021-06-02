@@ -91,7 +91,16 @@ month_dico = {1: 'Jan',
 # Pages setup
 #---------------------------------------
 
-page = st.sidebar.selectbox("",['Keyword mapping','Keyword analysis over time','Topic polarity', 'Keyword search'])
+page = st.sidebar.selectbox("",['Welcome', 'Keyword mapping','Keyword analysis over time','Topic polarity', 'Keyword search'])
+
+#---------------------------------------
+# Welcome screen that loads fast
+#---------------------------------------
+
+if page == 'Welcome':
+    # Overall title
+
+    st.text("Welcome 🎙")
 
 #---------------------------------------
 # Keyword mapping

@@ -34,7 +34,7 @@ interactive:
 	docker run -it -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME} sh
 
 # run the container without interaction (command line)
-run_streamlit:
+run:
 	docker run -p 8080:8000 ${GCR_MULTI_REGION}/${GCP_PROJECT_ID}/${DOCKER_IMAGE_NAME}
 
 # push the built image into Container Registry

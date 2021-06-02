@@ -18,7 +18,7 @@ spec:
         app: nyt-deployment-name
     spec:
       containers:
-      - image: gcr.io/$GCP_PROJECT_ID/nyt-deployment-name
+      - image: eu.gcr.io/studious-spider-309810/nyt-deployment-name
         name: nyt-deployment-name
         resources:
           requests:
