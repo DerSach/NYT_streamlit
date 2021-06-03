@@ -180,6 +180,12 @@ def plot_evolution_score(df, keyword1, keyword2):
     x=1.0)
     )
     return fig
+
+@st.cache
+def top_articles_comparison(df, keyword):
+    top_art_df = articles_df[articles_df['unique_kw'].str.contains(keyword)].sort_values(by = 'debate_score', ascending = False).head(3)
+    top_art_df['month'] = top_art_df['month'].map(month_dico)
+    return top_art_df
     
 #---------------------------------------
 # Pages setup
@@ -260,6 +266,13 @@ if page == 'Topics comparison':
     st.text("")
     
     CSS2 = """
+    p {
+        color: black;
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        background-color: white;
+    }
     .stApp {
         background-image: url(https://static01.nyt.com/images/2020/10/24/us/politics/22debate-ledeall-top1/22debate-ledeall-top1-videoSixteenByNine3000-v2.jpg);
         background-size: cover;
@@ -281,3 +294,23 @@ if page == 'Topics comparison':
     fig1 = plot_evolution_score(articles_df, keyword1, keyword2)
 
     st.plotly_chart(fig1,  width=750,height=600)
+
+    # Top 3 articles
+    '''
+    🔥🔥🔥 Hottest articles 🔥🔥🔥
+    '''
+    
+    top_art_df1 = top_articles_comparison(articles_df, keyword1)
+    top_art_df2 = top_articles_comparison(articles_df, keyword2)
+    
+    st.write(keyword1.upper())
+    st.write('🥇' , list(top_art_df1['headline'])[0],' - ', list(top_art_df1['month'])[0])
+    st.write('🥈', list(top_art_df1['headline'] )[1],' - ', list(top_art_df1['month'])[1])
+    st.write('🥉' , list(top_art_df1['headline'])[2],' - ', list(top_art_df1['month'])[2])
+    
+    st.write(' --------------------------------------------------- ')
+    
+    st.write(keyword2.upper())
+    st.write('🥇' , list(top_art_df2['headline'])[0],' - ', list(top_art_df2['month'])[0])
+    st.write('🥈', list(top_art_df2['headline'])[1],' - ', list(top_art_df2['month'])[1])
+    st.write('🥉' , list(top_art_df2['headline'])[2],' - ', list(top_art_df2['month'])[2])
